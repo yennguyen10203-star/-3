@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Pink Arena Evolution - Cute Deluxe</title>
+
+<style>
+body{
+    margin:0;
+    background:linear-gradient(-45deg,#ffd6f0,#ff9ecf,#ff69b4,#ffc1e3);
+    background-size:400% 400%;
+    animation:bgMove 12s ease infinite;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    font-family:sans-serif;
+}
+
+@keyframes bgMove{
+0%{background-position:0% 50%}
+50%{background-position:100% 50%}
+100%{background-position:0% 50%}
+}
+
+#game{
+    position:relative;
+    width:900px;
+    height:500px;
+    backdrop-filter:blur(15px);
+    background:rgba(255,240,246,0.85);
+    border-radius:20px;
+    box-shadow:0 0 60px rgba(255,20,147,0.6);
+    overflow:hidden;
+    transition:0.2s;
+}
+
+#scoreBoard{
+    position:absolute;
+    top:15px;
+    left:20px;
+    font-weight:bold;
+    color:#c2185b;
+}
+
+#leaderboard{
+    position:absolute;
+    right:20px;
+    top:15px;
+    font-size:14px;
+    color:#c2185b;
+}
+
+#playerHP{
+    position:absolute;
+    top:40px;
+    left:20px;
+    font-size:20px;
+}
+
+.player{
+    position:absolute;
+    left:80px;
+    font-size:45px;
+    transition:0.3s;
+    text-shadow:0 0 20px hotpink;
+}
+
+.enemy{
+    position:absolute;
+    right:80px;
+    font-size:70px;
+    transition:0.3s;
+}
+
+.bullet,.bossBullet{
+    position:absolute;
+    font-size:20px;
+}
+
+.explosion{
+    position:absolute;
+    font-size:40px;
+    animation:boom 0.4s ease forwards;
+}
+
+@keyframes boom{
+0%{transform:scale(0.5);opacity:1}
+100%{transform:scale(1.8);opacity:0}
+}
+
+#bossBarContainer{
+    position:absolute;
+    top:70px;
+    left:50%;
+    transform:translateX(-50%);
+    width:300px;
+    height:18px;
+    background:#ffe4ec;
+    border-radius:10px;
+}
+
+#bossBar{
+    height:100%;
+    width:100%;
+    background:#ff1493;
+    border-radius:10px;
+}
+
+.quote{
+    position:absolute;
+    top:100px;
+    width:100%;
+    text-align:center;
+    color:#ad1457;
+    font-style:italic;
+}
+
+.gameover{
+    position:absolute;
+    inset:0;
+    background:rgba(255,192,203,0.95);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    flex-direction:column;
+    font-size:30px;
+    color:#c2185b;
+}
+
+button{
+    padding:10px 20px;
+    border:none;
+    background:#ff1493;
+    color:white;
+    border-radius:10px;
+    margin-top:20px;
+    cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<div id="game">
+<div id="scoreBoard">Score: 0</div>
+<div id="leaderboard"></div>
+<div id="playerHP">❤️❤️❤️</div>
+
+<div id="bossBarContainer"><div id="bossBar"></div></div>
+<div id="quote" class="quote"></div>
+
+<div id="player" class="player">💖</div>
+<div id="enemy" class="enemy">🤖👑</div>
+</div>
+
+<script>
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+const audioCtx = new AudioContext();
+
+function tone(f,t=0.2){
+    const o=audioCtx.createOscillator();
+    const g=audioCtx.createGain();
+    o.frequency.value=f;
+    o.connect(g); g.connect(audioCtx.destination);
+    g.gain.setValueAtTime(0.1,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+t);
+    o.start(); o.stop(audioCtx.currentTime+t);
+}
+
+function laser(){ tone(1200,0.1); setTimeout(()=>tone(800,0.1),50); }
+function hitSound(){ tone(200,0.2); }
+function victorySound(){
+    tone(400,0.3);
+    setTimeout(()=>tone(600,0.3),200);
+    setTimeout(()=>tone(800,0.4),400);
+}
+
+let score=0;
+let bossHP=30;
+let playerHP=3;
+let playerY=220;
+let bossY=150;
+let bossDir=1;
+let bossSpeed=2;
+let bossShootRate=1500;
+let gameRunning=true;
+let leaderboard=JSON.parse(localStorage.getItem("arenaBoard"))||[];
+
+const game=document.getElementById("game");
+const player=document.getElementById("player");
+const enemy=document.getElementById("enemy");
+const bossBar=document.getElementById("bossBar");
+const quoteBox=document.getElementById("quote");
+
+player.style.top=playerY+"px";
+enemy.style.top=bossY+"px";
+
+renderBoard();
+updateHP();
+
+function renderBoard(){
+    leaderboard.sort((a,b)=>b-a);
+    let html="<b>Top 5</b><br>";
+    leaderboard.slice(0,5).forEach((s,i)=>{
+        html+=(i+1)+". "+s+"<br>";
+    });
+    document.getElementById("leaderboard").innerHTML=html;
+}
+
+function updateHP(){
+    document.getElementById("playerHP").innerText="❤️".repeat(playerHP);
+}
+
+document.addEventListener("keydown",(e)=>{
+    if(!gameRunning) return;
+    if(e.key==="ArrowUp" && playerY>0) playerY-=20;
+    if(e.key==="ArrowDown" && playerY<440) playerY+=20;
+    if(e.key===" ") shoot();
+    player.style.top=playerY+"px";
+});
+
+function shoot(){
+    laser();
+    const bullet=document.createElement("div");
+    bullet.className="bullet";
+    bullet.innerHTML="✨";
+    bullet.style.left="120px";
+    bullet.style.top=(playerY+15)+"px";
+    game.appendChild(bullet);
+
+    let pos=120;
+    const move=setInterval(()=>{
+        pos+=15;
+        bullet.style.left=pos+"px";
+
+        if(pos>700){ clearInterval(move); bullet.remove(); }
+
+        if(pos>650 && Math.abs(playerY-bossY)<40){
+            bossHP--;
+            score+=10;
+            updateScore();
+            updateBar();
+            explosion(650,bossY);
+            hitSound();
+            bullet.remove();
+            clearInterval(move);
+            if(bossHP<=0) bossDefeated();
+        }
+    },30);
+}
+
+function explosion(x,y){
+    const boom=document.createElement("div");
+    boom.className="explosion";
+    boom.innerHTML="💥";
+    boom.style.left=x+"px";
+    boom.style.top=y+"px";
+    game.appendChild(boom);
+    setTimeout(()=>boom.remove(),400);
+}
+
+function updateScore(){
+    document.getElementById("scoreBoard").innerText="Score: "+score;
+}
+
+function updateBar(){
+    bossBar.style.width=(bossHP/30*100)+"%";
+    if(bossHP<15) enemy.style.filter="hue-rotate(90deg)";
+    if(bossHP<5) enemy.style.filter="hue-rotate(180deg)";
+}
+
+function bossMove(){
+    if(!gameRunning) return;
+    bossY+=bossDir*bossSpeed;
+    if(bossY<0 || bossY>400) bossDir*=-1;
+    enemy.style.top=bossY+"px";
+}
+
+function bossShoot(){
+    if(!gameRunning) return;
+    const bullet=document.createElement("div");
+    bullet.className="bossBullet";
+    bullet.innerHTML="🔥";
+    bullet.style.left="750px";
+    bullet.style.top=(bossY+30)+"px";
+    game.appendChild(bullet);
+
+    let pos=750;
+    const move=setInterval(()=>{
+        pos-=12;
+        bullet.style.left=pos+"px";
+
+        if(pos<0){ clearInterval(move); bullet.remove(); }
+
+        if(pos<140 && Math.abs(playerY-bossY)<40){
+            playerHit();
+            clearInterval(move);
+            bullet.remove();
+        }
+    },30);
+}
+
+function playerHit(){
+    hitSound();
+    playerHP--;
+    updateHP();
+
+    game.style.transform="translateX(10px)";
+    setTimeout(()=>game.style.transform="translateX(-10px)",50);
+    setTimeout(()=>game.style.transform="translateX(0)",100);
+
+    if(playerHP<=0){
+        gameRunning=false;
+        player.innerHTML="💥";
+        setTimeout(()=>gameOver(),1000);
+    }
+}
+
+function bossDefeated(){
+    victorySound();
+    enemy.innerHTML="💥";
+    score+=200;
+    updateScore();
+
+    game.style.transform="scale(1.05)";
+    setTimeout(()=>game.style.transform="scale(1)",500);
+
+    const quotes=[
+        "Công nghệ mạnh, nhưng ý chí mạnh hơn.",
+        "Máy có thể tính, nhưng không thể cảm.",
+        "Sự sống luôn thích nghi."
+    ];
+    quoteBox.innerText=quotes[Math.floor(Math.random()*quotes.length)];
+
+    setTimeout(()=>{
+        enemy.innerHTML="🤖👑";
+        enemy.style.filter="none";
+        bossHP=30;
+        bossSpeed+=0.5;
+        bossShootRate=Math.max(600,bossShootRate-100);
+        updateBar();
+        quoteBox.innerText="";
+    },3000);
+}
+
+function gameOver(){
+    leaderboard.push(score);
+    localStorage.setItem("arenaBoard",JSON.stringify(leaderboard));
+
+    const over=document.createElement("div");
+    over.className="gameover";
+    over.innerHTML=`GAME OVER<br>Score: ${score}
+    <button onclick="location.reload()">Chơi lại</button>`;
+    game.appendChild(over);
+}
+
+setInterval(bossMove,20);
+setInterval(()=>bossShoot(),bossShootRate);
+
+/* Sakura effect */
+setInterval(()=>{
+const petal=document.createElement("div");
+petal.innerHTML="🌸";
+petal.style.position="absolute";
+petal.style.left=Math.random()*900+"px";
+petal.style.top="-20px";
+petal.style.fontSize="20px";
+game.appendChild(petal);
+
+let fall=setInterval(()=>{
+petal.style.top=(parseInt(petal.style.top)+3)+"px";
+if(parseInt(petal.style.top)>520){
+clearInterval(fall);
+petal.remove();
+}
+},20);
+},1000);
+
+</script>
+</body>
+</html>

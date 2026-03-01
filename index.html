@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Fear Assessment | Yen Nguyen</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+*{box-sizing:border-box;}
+
+body{
+margin:0;
+font-family:'Poppins',sans-serif;
+height:100vh;
+overflow:hidden;
+background:linear-gradient(-45deg,#ff9a9e,#fecfef,#fcb69f,#ffdde1);
+background-size:400% 400%;
+animation:gradient 15s ease infinite;
+transition:0.5s;
+position:relative;
+display:flex;
+justify-content:center;
+align-items:center;
+}
+
+body.dark{
+background:linear-gradient(-45deg,#1e1e2f,#2c2c54,#3a3a6e,#1e1e2f);
+color:white;
+}
+
+@keyframes gradient{
+0%{background-position:0% 50%;}
+50%{background-position:100% 50%;}
+100%{background-position:0% 50%;}
+}
+
+/* 🌸 Petals */
+.petal{
+position:absolute;
+top:-40px;
+font-size:20px;
+animation:fall linear infinite;
+opacity:0.8;
+}
+@keyframes fall{
+to{transform:translateY(110vh) rotate(360deg);}
+}
+
+/* Dark mode */
+.mode-toggle{
+position:absolute;
+top:15px;
+right:20px;
+cursor:pointer;
+font-size:24px;
+z-index:10;
+}
+
+/* ===== INTRO ===== */
+.intro-container{
+position:absolute;
+width:100%;
+height:100%;
+display:flex;
+justify-content:center;
+align-items:center;
+}
+
+.intro-card{
+backdrop-filter:blur(25px);
+background:rgba(255,255,255,0.45);
+border-radius:35px;
+padding:50px;
+width:90%;
+max-width:850px;
+text-align:center;
+box-shadow:0 30px 80px rgba(255,105,180,0.4);
+animation:introFade 1.2s ease;
+}
+
+body.dark .intro-card{
+background:rgba(0,0,0,0.6);
+}
+
+@keyframes introFade{
+from{opacity:0;transform:translateY(40px);}
+to{opacity:1;transform:translateY(0);}
+}
+
+.intro-badge{
+display:inline-block;
+padding:6px 15px;
+border-radius:20px;
+background:linear-gradient(90deg,#ff758c,#ff7eb3);
+color:white;
+font-size:12px;
+margin-bottom:20px;
+}
+
+.intro-title{
+font-size:38px;
+margin:10px 0;
+color:#c2185b;
+font-weight:700;
+}
+
+.intro-subtitle{
+font-size:20px;
+height:28px;
+margin-bottom:15px;
+color:#6a1b9a;
+}
+
+.intro-description{
+font-size:14px;
+margin-bottom:25px;
+opacity:0.9;
+}
+
+.intro-features{
+display:flex;
+justify-content:center;
+gap:25px;
+font-size:13px;
+margin-bottom:30px;
+flex-wrap:wrap;
+}
+
+.intro-button{
+width:60%;
+padding:14px;
+border:none;
+border-radius:30px;
+font-size:16px;
+background:linear-gradient(90deg,#ff4da6,#ff85c1);
+color:white;
+cursor:pointer;
+box-shadow:0 0 25px rgba(255,105,180,0.6);
+transition:0.3s;
+}
+
+.intro-button:hover{
+transform:scale(1.08);
+}
+
+/* ===== QUIZ / RESULT / ADVICE ===== */
+
+.card{
+backdrop-filter:blur(20px);
+background:rgba(255,255,255,0.4);
+border-radius:30px;
+padding:40px;
+width:90%;
+max-width:750px;
+text-align:center;
+box-shadow:0 25px 60px rgba(255,105,180,0.4);
+display:none;
+}
+
+body.dark .card{
+background:rgba(0,0,0,0.5);
+}
+
+button{
+width:100%;
+padding:12px;
+margin:10px 0;
+border:none;
+border-radius:25px;
+font-size:15px;
+cursor:pointer;
+background:linear-gradient(90deg,#ff758c,#ff7eb3);
+color:white;
+transition:0.3s;
+}
+
+button:hover{transform:scale(1.05);}
+
+.progress-text{margin-top:10px;font-weight:600;}
+
+canvas{
+background:rgba(255,255,255,0.3);
+border-radius:15px;
+margin-top:20px;
+}
+
+/* 💗 Heart */
+.heart{
+position:absolute;
+font-size:18px;
+animation:floatUp 1s ease forwards;
+}
+@keyframes floatUp{
+to{transform:translateY(-60px);opacity:0;}
+}
+
+footer{
+position:absolute;
+bottom:10px;
+font-size:12px;
+opacity:0.7;
+}
+</style>
+</head>
+
+<body>
+
+<div class="mode-toggle" onclick="toggleMode()">🌙</div>
+<div id="petals"></div>
+
+<!-- INTRO -->
+<div id="intro" class="intro-container">
+<div class="intro-card">
+<div class="intro-badge">✨ Emotional & AI Research Project</div>
+<h1 class="intro-title">AI Fear Assessment</h1>
+<h2 class="intro-subtitle" id="typingText"></h2>
+<p class="intro-description">
+Một trải nghiệm tương tác giúp bạn khám phá cảm xúc,
+mức độ lo âu và cách bạn nhìn nhận sự phát triển của trí tuệ nhân tạo.
+</p>
+<div class="intro-features">
+<div>🌸 Trắc nghiệm cảm xúc</div>
+<div>📊 Phân tích thống kê</div>
+<div>💖 Gợi ý cá nhân hóa</div>
+</div>
+<button class="intro-button" onclick="startQuiz()">🚀 Bắt đầu hành trình</button>
+</div>
+</div>
+
+<!-- QUIZ -->
+<div id="quiz" class="card">
+<h2>Câu hỏi 💭</h2>
+<div id="question"></div>
+<div id="options"></div>
+<div class="progress-text" id="progressText">0%</div>
+</div>
+
+<!-- RESULT -->
+<div id="resultScreen" class="card">
+<h2>Kết quả của bạn 🌷</h2>
+<div id="personality"></div>
+<canvas id="statsChart" width="400" height="250"></canvas>
+<button onclick="showAdvice()">💌 Xem gợi ý</button>
+</div>
+
+<!-- ADVICE -->
+<div id="adviceScreen" class="card">
+<h2>Gợi ý cho bạn 💖</h2>
+<div id="adviceText"></div>
+<button onclick="goGame()">🎮 Giải tỏa lo âu</button>
+</div>
+
+<footer>
+Created by Yen Nguyen ✨ | Exploring Human Emotion & AI
+</footer>
+
+<script>
+// 🌸 Petals
+function createPetal(){
+const petal=document.createElement("div");
+petal.classList.add("petal");
+petal.innerHTML="🌸";
+petal.style.left=Math.random()*100+"vw";
+petal.style.animationDuration=(5+Math.random()*5)+"s";
+document.body.appendChild(petal);
+setTimeout(()=>petal.remove(),10000);
+}
+setInterval(createPetal,500);
+
+// Dark mode
+function toggleMode(){
+document.body.classList.toggle("dark");
+}
+
+// Typing effect
+const text="Hiểu cảm xúc của bạn trong kỷ nguyên AI.";
+let i=0;
+function typing(){
+if(i<text.length){
+document.getElementById("typingText").innerHTML+=text.charAt(i);
+i++;
+setTimeout(typing,50);
+}
+}
+typing();
+
+// Piano
+const AudioContext=window.AudioContext||window.webkitAudioContext;
+let audioCtx;
+function startPiano(){
+audioCtx=new AudioContext();
+function play(freq,time){
+const osc=audioCtx.createOscillator();
+const gain=audioCtx.createGain();
+osc.frequency.value=freq;
+osc.connect(gain);
+gain.connect(audioCtx.destination);
+gain.gain.setValueAtTime(0.1,time);
+gain.gain.exponentialRampToValueAtTime(0.001,time+2);
+osc.start(time);
+osc.stop(time+2);
+}
+function loop(){
+const now=audioCtx.currentTime;
+[261,329,392,523].forEach((n,i)=>play(n,now+i*2));
+setTimeout(loop,8000);
+}
+loop();
+}
+
+// Quiz
+const questions=[
+"Bạn lo AI thay thế công việc?",
+"Bạn sợ bị tụt hậu?",
+"Bạn nghĩ AI làm con người yếu đi?",
+"Bạn lo tương lai bị AI kiểm soát?",
+"Bạn tránh tìm hiểu AI?"
+];
+
+const answers=[
+{text:"😊 Bình thường",score:1},
+{text:"😐 Lo nhẹ",score:2},
+{text:"😟 Lo âu",score:3},
+{text:"😰 Rất sợ",score:4}
+];
+
+let current=0,total=0;
+
+function startQuiz(){
+document.getElementById("intro").style.display="none";
+document.getElementById("quiz").style.display="block";
+startPiano();
+loadQuestion();
+}
+
+function loadQuestion(){
+document.getElementById("question").innerHTML=questions[current];
+const opt=document.getElementById("options");
+opt.innerHTML="";
+answers.forEach(a=>{
+const btn=document.createElement("button");
+btn.innerHTML=a.text;
+btn.onclick=()=>{
+createHeart(btn);
+total+=a.score;
+current++;
+updateProgress();
+if(current<questions.length){loadQuestion();}
+else{showResult();}
+};
+opt.appendChild(btn);
+});
+}
+
+function createHeart(btn){
+const heart=document.createElement("div");
+heart.classList.add("heart");
+heart.innerHTML="💗";
+heart.style.left=btn.offsetLeft+btn.offsetWidth/2+"px";
+heart.style.top=btn.offsetTop+"px";
+btn.parentElement.appendChild(heart);
+setTimeout(()=>heart.remove(),1000);
+}
+
+function updateProgress(){
+let percent=Math.round((current/questions.length)*100);
+let display=0;
+const text=document.getElementById("progressText");
+let interval=setInterval(()=>{
+if(display>=percent){clearInterval(interval);}
+else{display++;text.innerHTML=display+"% hoàn thành ✨";}
+},10);
+}
+
+function showResult(){
+document.getElementById("quiz").style.display="none";
+document.getElementById("resultScreen").style.display="block";
+
+let type,desc,key;
+
+if(total<=7){type="💖 Người hòa hợp với AI";desc="Bạn xem AI là công cụ hỗ trợ.";key="hoaHop";}
+else if(total<=12){type="🌷 Người thận trọng";desc="Bạn có chút lo âu.";key="thanTrong";}
+else if(total<=17){type="🔥 Người kháng cự AI";desc="Bạn có nhiều lo ngại.";key="khangCu";}
+else{type="🌙 Người lo âu cao";desc="Bạn cảm thấy AI đáng sợ.";key="loAu";}
+
+let stats=JSON.parse(localStorage.getItem("aiStats"))||{hoaHop:0,thanTrong:0,khangCu:0,loAu:0};
+stats[key]++;
+localStorage.setItem("aiStats",JSON.stringify(stats));
+
+document.getElementById("personality").innerHTML="<h3>"+type+"</h3><p>"+desc+"</p>";
+drawChart(stats);
+}
+
+function drawChart(stats){
+const canvas=document.getElementById("statsChart");
+const ctx=canvas.getContext("2d");
+ctx.clearRect(0,0,canvas.width,canvas.height);
+
+const labels=["Hòa hợp","Thận trọng","Kháng cự","Lo âu"];
+const values=[stats.hoaHop,stats.thanTrong,stats.khangCu,stats.loAu];
+const max=Math.max(...values,1);
+const barWidth=50;
+const gap=30;
+
+values.forEach((val,i)=>{
+let barHeight=(val/max)*150;
+let x=40+i*(barWidth+gap);
+let y=200-barHeight;
+ctx.fillStyle="#ff4da6";
+ctx.fillRect(x,y,barWidth,barHeight);
+ctx.fillStyle="#333";
+ctx.fillText(val,x+20,y-5);
+ctx.fillText(labels[i],x-5,220);
+});
+}
+
+function showAdvice(){
+document.getElementById("resultScreen").style.display="none";
+document.getElementById("adviceScreen").style.display="block";
+document.getElementById("adviceText").innerHTML=
+"🌸 Học AI từng bước nhỏ<br>💡 Phát triển kỹ năng sáng tạo<br>💖 Xem AI là cộng sự";
+}
+
+function goGame(){
+document.body.style.opacity="0";
+setTimeout(()=>{window.location.href="rescue.html";},800);
+}
+</script>
+
+</body>
+</html>
